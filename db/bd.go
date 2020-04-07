@@ -2,13 +2,16 @@ package db
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
+var databaseUrl string = os.Getenv("DATABASE_URL") // "user:password@/dbname?charset=utf8&parseTime=True&loc=Local"
+
 func FindPathInDb(path string) bool {
-	db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local") // TODO: get from environment variable
+	db, err := gorm.Open("mysql", databaseUrl)
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -22,7 +25,7 @@ func FindPathInDb(path string) bool {
 }
 
 func UpdateInDb(path string) bool {
-	db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local") // TODO: get from environment variable
+	db, err := gorm.Open("mysql", databaseUrl)
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -36,7 +39,7 @@ func UpdateInDb(path string) bool {
 }
 
 func CreateInDb(path string) bool {
-	db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local") // TODO: get from environment variable
+	db, err := gorm.Open("mysql", databaseUrl)
 	if err != nil {
 		panic("failed to connect database")
 	}

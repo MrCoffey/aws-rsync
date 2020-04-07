@@ -11,11 +11,13 @@ import (
 )
 
 func GetObjects(bucketName string) {
+	SecretKey := os.Getenv("SECRET_KEY")
+	AccessKeyID := os.Getenv("ACCESS_KEY_ID")
 
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String("us-west-2"),
-		Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-	}) // TODO: Get from envars
+		Credentials: credentials.NewStaticCredentials(AccessKeyID, SecretKey, ""),
+	})
 
 	// Create S3 service client
 	svc := s3.New(sess)

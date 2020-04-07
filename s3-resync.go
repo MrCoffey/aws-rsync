@@ -8,7 +8,7 @@ import (
 )
 
 // Usage:
-//    go run s3-resync.go BUCKET_NAME
+//    go run s3-resync.go LEGACY_BUCKET_NAME NEW_BUCKET_NAME
 func main() {
 	if len(os.Args) != 2 {
 		exitErrorf("Bucket name required\nUsage: %s bucket_name",
