@@ -14,10 +14,9 @@ func main() {
 		exitErrorf("Bucket name required\nUsage: %s bucket_name",
 			os.Args[0])
 	}
+	bucketName := os.Args[1]
 
-	bucket := os.Args[1]
-
-	s3.ListBuckets(bucket)
+	s3.GetObjects(bucketName)
 }
 
 func exitErrorf(msg string, args ...interface{}) {

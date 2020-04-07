@@ -10,12 +10,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-func ListBuckets(bucketName string) {
+func GetObjects(bucketName string) {
 
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String("us-west-2"),
 		Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-	})
+	}) // TODO: Get from envars
 
 	// Create S3 service client
 	svc := s3.New(sess)
