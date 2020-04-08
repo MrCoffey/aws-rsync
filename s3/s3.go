@@ -13,10 +13,17 @@ import (
 func GetObjects(bucketName string) {
 	SecretKey := os.Getenv("SECRET_KEY")
 	AccessKeyID := os.Getenv("ACCESS_KEY_ID")
+	zone := os.Getenv("REGION")
+	url := os.Getenv("S3_ENDPOINT")
+
+	fmt.Printf("ZONEEE %v", zone)
 
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String("us-west-2"),
-		Credentials: credentials.NewStaticCredentials(AccessKeyID, SecretKey, ""),
+		Region:           aws.String(zone),
+		Credentials:      credentials.NewStaticCredentials(AccessKeyID, SecretKey, ""),
+		Endpoint:         aws.String(url),
+		DisableSSL:       aws.Bool(true),
+		S3ForcePathStyle: aws.Bool(true),
 	})
 
 	// Create S3 service client

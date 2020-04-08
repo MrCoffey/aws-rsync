@@ -1,0 +1,60 @@
+version: '3.7'
+
+services:
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./test/.minio/data:/export
+      - ./test/.minio/config:/root/.minio
+    environment:
+      MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
+      MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    networks: 
+      - test-net
+    command: server /export
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    networks: 
+      - test-net
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY;
+      /usr/bin/mc mb myminio/legacybucket --region us-east-1;
+      /usr/bin/mc mb myminio/newbucket --region us-east-1;
+      exit 0;
+      "
+
+  mariadb:
+    image: mariadb:latest
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: dbname
+    networks: 
+      - test-net
+
+  resync:
+    build: .
+    environment:
+      SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
+      REGION: us-east-1
+      DATABASE_URL: root:test@mariadb/dbname?charset=utf8&parseTime=True&loc=Local
+      LEGACY_BUCKET_NAME: legacybucket
+      NEW_BUCKET_NAME: newbucket
+      S3_ENDPOINT: minio:9000
+    depends_on:
+      - minio
+      - mariadb
+    networks:
+      - test-net
+
+networks:
+  test-net:
+    driver: bridge
