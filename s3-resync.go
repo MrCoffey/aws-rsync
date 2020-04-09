@@ -8,15 +8,15 @@ import (
 )
 
 // Usage:
-//    go run s3-resync.go LEGACY_BUCKET_NAME NEW_BUCKET_NAME
+//    go run s3-resync.go LEGACY_BUCKET_NAME DESTINATION_BUCKET_NAME
 func main() {
 	if len(os.Args) != 3 {
-		exitErrorf("Bucket name required\nUsage: %s bucket_name",
-			os.Args[0])
+		exitErrorf("Bucket name required\nUsage: go run s3-resync.go LEGACY_BUCKET_NAME DESTINATION_BUCKET_NAME")
 	}
-	bucketName := os.Args[1]
+	legacyBucket := os.Args[1]
+	destinationBucket := os.Args[2]
 
-	s3.GetObjects(bucketName)
+	s3.GetObjects(legacyBucket, destinationBucket)
 }
 
 func exitErrorf(msg string, args ...interface{}) {

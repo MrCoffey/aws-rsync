@@ -1,5 +1,9 @@
 version: '3.7'
 
+networks:
+  test-net:
+    driver: bridge
+
 services:
   minio:
     image: minio/minio
@@ -30,12 +34,16 @@ services:
       "
 
   mariadb:
-    image: mariadb:latest
+    image: bitnami/mariadb:latest
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: test
-      MYSQL_DATABASE: dbname
+      MARIADB_USER: test
+      MARIADB_PASSWORD: root123
+      ALLOW_EMPTY_PASSWORD: "yes"
+      MARIADB_DATABASE: dbname
+    volumes:
+      - ./test/dbdata:/bitnami/mariadb
     networks: 
       - test-net
 
@@ -45,7 +53,7 @@ services:
       SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
       ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
       REGION: us-east-1
-      DATABASE_URL: root:test@mariadb/dbname?charset=utf8&parseTime=True&loc=Local
+      DATABASE_URL: test:root123@tcp(mariadb:3306)/dbname?charset=utf8&parseTime=True&loc=Local
       LEGACY_BUCKET_NAME: legacybucket
       NEW_BUCKET_NAME: newbucket
       S3_ENDPOINT: minio:9000
@@ -54,7 +62,3 @@ services:
       - mariadb
     networks:
       - test-net
-
-networks:
-  test-net:
-    driver: bridge
