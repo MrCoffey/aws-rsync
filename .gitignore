@@ -1,2 +1,4 @@
 s3-resync
-test/
+test/dbdata
+test/.minio/data/newbucket
+!test/.minio/data/legacybucket/*

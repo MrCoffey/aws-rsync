@@ -46,10 +46,6 @@ func SyncObjects(config *config.Values) {
 	})
 	svc := s3.New(sess)
 
-	if config.TestMode {
-		db.MigrateDB(config)
-	}
-
 	pageInx := 0
 	err = svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{Bucket: aws.String(legacyBucket)},
 		func(page *s3.ListObjectsV2Output, lastPage bool) bool {
@@ -72,19 +68,26 @@ func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Outp
 
 	for _, item := range page.Contents {
 		newPathExist := db.FindPathInDb(config, destinationBucket, *item.Key)
-		if newPathExist != true {
-			if err := moveObject(svc, config, *item.Key); err != nil {
-				report.CopiedObjects++
+		if !newPathExist {
+			err := moveObject(svc, config, *item.Key)
+			if err != nil {
+				fmt.Printf("%v", err)
+				continue
 			}
 			objects = append(objects, db.Object{Bucket: destinationBucket, Path: *item.Key})
-			report.PathsUpdated++
+			report.CopiedObjects++
 		} else {
 			fmt.Printf("Path '%s/%s' already exists, skiping.\n", legacyBucket, *item.Key)
 			report.PathsSkipped++
 		}
 	}
 
-	db.BulkCreateRecords(config, objects)
+	err := db.BulkCreateRecords(config, objects)
+	if err != nil {
+		return false
+	}
+
+	report.PathsUpdated = len(objects)
 	showReport(&report, pageInx)
 	return true
 }
@@ -92,10 +95,12 @@ func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Outp
 // Warning: This method only support coping files up to 5GB
 // after that weigth is necesary to copy using a multipart option
 func moveObject(svc *s3.S3, config *config.Values, key string) error {
-	// fmt.Printf("Coping %s to %s/%s \n\n", origin, destinationBucket, key)
 	destinationBucket := config.DestinationBucket
-	origin := fmt.Sprintf("%s/%s", config.OriginBucket, key)
+	legacyBucket := config.OriginBucket
 
+	fmt.Printf("Moving Path '%s/%s' to '%s/%s'.\n", legacyBucket, key, destinationBucket, key)
+
+	origin := fmt.Sprintf("%s/%s", legacyBucket, key)
 	copyObjectInput := &s3.CopyObjectInput{
 		Bucket:     aws.String(destinationBucket),
 		CopySource: aws.String(origin),
@@ -110,7 +115,7 @@ func moveObject(svc *s3.S3, config *config.Values, key string) error {
 	}
 
 	deleteObjectInput := &s3.DeleteObjectInput{
-		Bucket: aws.String(config.OriginBucket),
+		Bucket: aws.String(legacyBucket),
 		Key:    aws.String(key),
 	}
 	_, err = svc.DeleteObject(deleteObjectInput)
@@ -133,8 +138,6 @@ func showReport(report *reportData, pageInx int) {
 		{"MOVED OBJECTS", report.CopiedObjects},
 		{"PATHS UPDATED", report.PathsUpdated},
 		{"PATHS SKIPPED", report.PathsSkipped},
-		{"PATHS IN DB BEFORE", report.PathsInDdBefore},
-		{"PATHS IN DB AFTER", report.PathsInDdAfter},
 	})
 	t.Render()
 }
