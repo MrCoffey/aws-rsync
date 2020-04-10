@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MrCoffey/s3-resync/config"
-	"github.com/MrCoffey/s3-resync/s3"
+	"github.com/MrCoffey/s3-sync/config"
+	"github.com/MrCoffey/s3-sync/db"
+	"github.com/MrCoffey/s3-sync/s3"
 )
 
 // Usage Example:
@@ -45,6 +46,10 @@ func main() {
 		S3Region:          *s3Region,
 		S3Endpoint:        *s3Endpoint,
 		TestMode:          *testMode,
+	}
+
+	if configuration.TestMode {
+		db.MigrateDB(&configuration)
 	}
 
 	s3.SyncObjects(&configuration)

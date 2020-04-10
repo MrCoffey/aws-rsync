@@ -3,7 +3,8 @@ package db
 import (
 	"fmt"
 
-	"github.com/MrCoffey/s3-resync/config"
+	"github.com/MrCoffey/s3-sync/config"
+	gormbulk "github.com/t-tiger/gorm-bulk-insert"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -12,21 +13,20 @@ import (
 // Object is a S3 Model in database
 type Object struct {
 	gorm.Model
+	ID int `gorm:"AUTO_INCREMENT"`
+
 	Path   string
 	Bucket string
 }
 
-func MigrateDB(config *config.Values) {
-	var databaseURL string = config.DatabaseURL
-
-	db, err := gorm.Open("mysql", databaseURL)
+func MigrateDB(config *config.Values) error {
+	db, err := initDB(config)
 	if err != nil {
-		panic("failed to connect database \n\n")
+		return err
 	}
-	defer db.Close()
 
 	db.AutoMigrate(&Object{})
-
+	return nil
 }
 
 // ListPaths all the records
@@ -103,4 +103,30 @@ func CreateInDb(config *config.Values, bucketName string, key string) bool {
 	}
 
 	return true
+}
+
+func BulkCreateRecords(config *config.Values, objects []interface{}) error {
+	db, err := initDB(config)
+	if err != nil {
+		return err
+	}
+
+	err = gormbulk.BulkInsert(db, objects, 1000)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func initDB(config *config.Values) (*gorm.DB, error) {
+	var databaseURL string = config.DatabaseURL
+
+	db, err := gorm.Open("mysql", databaseURL)
+	if err != nil {
+		panic("failed to connect database\n\n")
+		return db, err
+	}
+	defer db.Close()
+
+	return db, nil
 }

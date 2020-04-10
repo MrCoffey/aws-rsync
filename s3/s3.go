@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/MrCoffey/s3-resync/config"
-	"github.com/MrCoffey/s3-resync/db"
+	"github.com/MrCoffey/s3-sync/config"
+	"github.com/MrCoffey/s3-sync/db"
 
 	"github.com/jedib0t/go-pretty/table"
 
@@ -54,8 +54,7 @@ func SyncObjects(config *config.Values) {
 	err = svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{Bucket: aws.String(legacyBucket)},
 		func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 			pageInx++
-			copyAndUpdate(svc, config, page, pageInx)
-			return true
+			return copyAndUpdate(svc, config, page, pageInx)
 		})
 
 	if err != nil {
@@ -63,35 +62,35 @@ func SyncObjects(config *config.Values) {
 	}
 }
 
-func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Output, pageInx int) {
+func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Output, pageInx int) bool {
 	var legacyBucket string = config.OriginBucket
 	var destinationBucket string = config.DestinationBucket
 	var report reportData = reportData{ObjectsInLegacyBucket: len(page.Contents)}
+	var objects []interface{}
 
 	fmt.Printf("\nCurrently working on page No: %d Bucket Name: %s \n\n", pageInx, legacyBucket)
 
 	for _, item := range page.Contents {
-		//db.CreateInDb(config, legacyBucket, *item.Key) // Uncomment if you need to populate the database
-
 		newPathExist := db.FindPathInDb(config, destinationBucket, *item.Key)
 		if newPathExist != true {
-			if moveObject(svc, config, *item.Key) {
+			if err := moveObject(svc, config, *item.Key); err != nil {
 				report.CopiedObjects++
 			}
-			if db.UpdateInDb(config, legacyBucket, destinationBucket, *item.Key) {
-				report.PathsUpdated++
-			}
+			objects = append(objects, db.Object{Bucket: destinationBucket, Path: *item.Key})
+			report.PathsUpdated++
 		} else {
 			report.PathsSkipped++
 		}
 	}
 
+	db.BulkCreateRecords(config, objects)
 	showReport(&report, pageInx)
+	return true
 }
 
 // Warning: This method only support coping files up to 5GB
 // after that weigth is necesary to copy using a multipart option
-func moveObject(svc *s3.S3, config *config.Values, key string) bool {
+func moveObject(svc *s3.S3, config *config.Values, key string) error {
 	// fmt.Printf("Coping %s to %s/%s \n\n", origin, destinationBucket, key)
 	destinationBucket := config.DestinationBucket
 	origin := fmt.Sprintf("%s/%s", config.OriginBucket, key)
@@ -106,7 +105,7 @@ func moveObject(svc *s3.S3, config *config.Values, key string) bool {
 	_, err := svc.CopyObject(copyObjectInput)
 	if err != nil {
 		log.Fatal("Copy failed due to: \n", err)
-		return false
+		return err
 	}
 
 	deleteObjectInput := &s3.DeleteObjectInput{
@@ -116,10 +115,10 @@ func moveObject(svc *s3.S3, config *config.Values, key string) bool {
 	_, err = svc.DeleteObject(deleteObjectInput)
 	if err != nil {
 		log.Fatal("Deleting process failed due to: \n", err)
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 func showReport(report *reportData, pageInx int) {
