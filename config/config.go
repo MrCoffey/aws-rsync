@@ -8,4 +8,5 @@ type Values struct {
 	S3AccessKeyID     string
 	S3Region          string
 	S3Endpoint        string
+	TestMode          bool
 }

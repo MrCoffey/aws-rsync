@@ -45,7 +45,10 @@ func SyncObjects(config *config.Values) {
 		S3ForcePathStyle: aws.Bool(true),
 	})
 	svc := s3.New(sess)
-	//db.MigrateDB(config)
+
+	if config.TestMode {
+		db.MigrateDB(config)
+	}
 
 	pageInx := 0
 	err = svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{Bucket: aws.String(legacyBucket)},
@@ -92,7 +95,7 @@ func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Outp
 func moveObject(svc *s3.S3, config *config.Values, key string) bool {
 	// fmt.Printf("Coping %s to %s/%s \n\n", origin, destinationBucket, key)
 	destinationBucket := config.DestinationBucket
-	origin := fmt.Sprintf("%s/%s", config.DestinationBucket, key)
+	origin := fmt.Sprintf("%s/%s", config.OriginBucket, key)
 
 	copyObjectInput := &s3.CopyObjectInput{
 		Bucket:     aws.String(destinationBucket),

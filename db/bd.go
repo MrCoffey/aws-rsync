@@ -73,11 +73,11 @@ func UpdateInDb(config *config.Values, legacyBucket string, destinationBucket st
 	}
 	defer db.Close()
 
-	fmt.Printf("Updating path %s to: %s \n\n", legacyBucket, destinationBucket)
+	fmt.Printf("Updating path %s to: %s/%s \n\n", legacyBucket, destinationBucket, key)
 
 	object := Object{}
 
-	if err := db.Model(&object).Updates(Object{Bucket: destinationBucket}).RecordNotFound(); err {
+	if err := db.Model(&object).Where("bucket = ? AND path = ?", legacyBucket, key).Updates(Object{Bucket: destinationBucket, Path: key}).RecordNotFound(); err {
 		fmt.Println("failed to update object with path: \n", legacyBucket)
 		return false
 	}
