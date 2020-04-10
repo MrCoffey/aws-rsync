@@ -68,7 +68,7 @@ func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Outp
 	var report reportData = reportData{ObjectsInLegacyBucket: len(page.Contents)}
 	var objects []interface{}
 
-	fmt.Printf("\nCurrently working on page No: %d Bucket Name: %s \n\n", pageInx, legacyBucket)
+	fmt.Printf("Working on Bucket Name: %s page No: %d \n\n", legacyBucket, pageInx)
 
 	for _, item := range page.Contents {
 		newPathExist := db.FindPathInDb(config, destinationBucket, *item.Key)
@@ -79,6 +79,7 @@ func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Outp
 			objects = append(objects, db.Object{Bucket: destinationBucket, Path: *item.Key})
 			report.PathsUpdated++
 		} else {
+			fmt.Printf("Path '%s/%s' already exists, skiping.\n", legacyBucket, *item.Key)
 			report.PathsSkipped++
 		}
 	}

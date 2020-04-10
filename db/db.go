@@ -13,20 +13,20 @@ import (
 // Object is a S3 Model in database
 type Object struct {
 	gorm.Model
-	ID int `gorm:"AUTO_INCREMENT"`
-
 	Path   string
 	Bucket string
 }
 
-func MigrateDB(config *config.Values) error {
-	db, err := initDB(config)
+func MigrateDB(config *config.Values) {
+	var databaseURL string = config.DatabaseURL
+
+	db, err := gorm.Open("mysql", databaseURL)
 	if err != nil {
-		return err
+		panic("failed to connect database\n\n")
 	}
+	defer db.Close()
 
 	db.AutoMigrate(&Object{})
-	return nil
 }
 
 // ListPaths all the records
@@ -56,7 +56,7 @@ func FindPathInDb(config *config.Values, bucket string, key string) bool {
 	defer db.Close()
 
 	if db.Where("bucket = ? AND path = ?", bucket, key).Find(&Object{}).RecordNotFound() {
-		fmt.Printf("Failed to find KEY: %s %s \n", bucket, key)
+		fmt.Printf("Target path KEY: %s/ %s not found. \n", bucket, key)
 		return false
 	}
 
@@ -106,27 +106,17 @@ func CreateInDb(config *config.Values, bucketName string, key string) bool {
 }
 
 func BulkCreateRecords(config *config.Values, objects []interface{}) error {
-	db, err := initDB(config)
+	var databaseURL string = config.DatabaseURL
+
+	db, err := gorm.Open("mysql", databaseURL)
 	if err != nil {
-		return err
+		panic("failed to connect database\n\n")
 	}
+	defer db.Close()
 
 	err = gormbulk.BulkInsert(db, objects, 1000)
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-func initDB(config *config.Values) (*gorm.DB, error) {
-	var databaseURL string = config.DatabaseURL
-
-	db, err := gorm.Open("mysql", databaseURL)
-	if err != nil {
-		panic("failed to connect database\n\n")
-		return db, err
-	}
-	defer db.Close()
-
-	return db, nil
 }
