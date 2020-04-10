@@ -71,10 +71,9 @@ func copyAndUpdate(svc *s3.S3, config *config.Values, page *s3.ListObjectsV2Outp
 	fmt.Printf("\nCurrently working on page No: %d Bucket Name: %s \n\n", pageInx, legacyBucket)
 
 	for _, item := range page.Contents {
+		//db.CreateInDb(config, legacyBucket, *item.Key) // Uncomment if you need to populate the database
+
 		newPathExist := db.FindPathInDb(config, destinationBucket, *item.Key)
-
-		//db.CreateInDb(config, legacyBucket, *item.Key)
-
 		if newPathExist != true {
 			if moveObject(svc, config, *item.Key) {
 				report.CopiedObjects++
@@ -110,15 +109,15 @@ func moveObject(svc *s3.S3, config *config.Values, key string) bool {
 		return false
 	}
 
-	// deleteObjectInput := &s3.DeleteObjectInput{
-	// 	Bucket: aws.String(origin),
-	// 	Key:    aws.String(key),
-	// }
-	// _, err = svc.DeleteObject(deleteObjectInput)
-	// if err != nil {
-	// 	log.Fatal("Deleting process failed due to: \n", err)
-	// 	return false
-	// }
+	deleteObjectInput := &s3.DeleteObjectInput{
+		Bucket: aws.String(config.OriginBucket),
+		Key:    aws.String(key),
+	}
+	_, err = svc.DeleteObject(deleteObjectInput)
+	if err != nil {
+		log.Fatal("Deleting process failed due to: \n", err)
+		return false
+	}
 
 	return true
 }
@@ -131,11 +130,11 @@ func showReport(report *reportData, pageInx int) {
 	t.AppendHeader(table.Row{page, "COUNT"})
 	t.AppendRows([]table.Row{
 		{"LEGACY OBJECTS", report.ObjectsInLegacyBucket},
-		{"COPIED OBJECTS", report.CopiedObjects},
-		{"PATHS IN DB BEFORE", report.PathsInDdBefore},
-		{"PATHS IN DB AFTER", report.PathsInDdAfter},
+		{"MOVED OBJECTS", report.CopiedObjects},
 		{"PATHS UPDATED", report.PathsUpdated},
 		{"PATHS SKIPPED", report.PathsSkipped},
+		{"PATHS IN DB BEFORE", report.PathsInDdBefore},
+		{"PATHS IN DB AFTER", report.PathsInDdAfter},
 	})
 	t.Render()
 }
