@@ -1,4 +1,4 @@
-FROM golang:1.13.0-stretch
+FROM golang:1.13.0-alpine
 
 ENV GO111MODULE=on
 ENV GOSUMDB=off

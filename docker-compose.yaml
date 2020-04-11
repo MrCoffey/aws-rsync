@@ -42,8 +42,6 @@ services:
       MARIADB_PASSWORD: root123
       ALLOW_EMPTY_PASSWORD: "yes"
       MARIADB_DATABASE: dbname
-    volumes:
-      - ./test/dbdata:/bitnami/mariadb
     networks:
       - test-net
 
