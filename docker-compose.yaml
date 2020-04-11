@@ -15,7 +15,7 @@ services:
     environment:
       MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
       MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-    networks: 
+    networks:
       - test-net
     command: server /export
 
@@ -23,7 +23,7 @@ services:
     image: minio/mc
     depends_on:
       - minio
-    networks: 
+    networks:
       - test-net
     entrypoint: >
       /bin/sh -c "
@@ -44,10 +44,10 @@ services:
       MARIADB_DATABASE: dbname
     volumes:
       - ./test/dbdata:/bitnami/mariadb
-    networks: 
+    networks:
       - test-net
 
-  resync:
+  s3sync:
     build: .
     environment:
       SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
