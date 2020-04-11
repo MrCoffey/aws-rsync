@@ -1,13 +1,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/MrCoffey/s3-sync/config"
 	"github.com/MrCoffey/s3-sync/db"
 	"github.com/MrCoffey/s3-sync/s3"
+	"github.com/urfave/cli/v2"
 )
 
 // Usage Example:
@@ -19,38 +20,100 @@ import (
 //		-s3-region=REGION \
 //		-s3-endpoint=0.0.0.0:9000
 func main() {
-	originBucket := flag.String("origin-bucket", "", "Origin bucket name. (Required)")
-	destinationBucket := flag.String("destination-bucket", "", "Destination bucket name. (Required)")
-	databaseURL := flag.String("database-url", "", "Destination bucket name. (Required)")
-	s3SecretKey := flag.String("s3-secret-key", "", "s3 secret key. (Required)")
-	s3AccessKeyID := flag.String("s3-access-key-id", "", "s3 access key id. (Required)")
+	var originBucket string
+	var destinationBucket string
+	var databaseURL string
+	var s3SecretKey string
+	var s3AccessKeyID string
+	var s3Region string
+	var s3Endpoint string
+	var testMode bool
 
-	s3Region := flag.String("s3-region", "us-east-1", "s3 Region.")
-	s3Endpoint := flag.String("s3-endpoint", "s3.amazon.com", "s3 Endpoint.")
-	testMode := flag.Bool("test-mode", false, "If enabled this script will attempt to create the sql schema.")
+	app := &cli.App{
+		Name:  "s3-sync",
+		Usage: "Moves objects from one bucket to another using the s3 protocol.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "origin-bucket",
+				Value:       "",
+				Usage:       "Origin bucket name. (Required)",
+				Destination: &originBucket,
+				Required:    true,
+			},
+			&cli.StringFlag{
+				Name:        "destination-bucket",
+				Value:       "",
+				Usage:       "Destination bucket name. (Required)",
+				Destination: &destinationBucket,
+				Required:    true,
+			},
+			&cli.StringFlag{
+				Name:        "database-url",
+				Value:       "",
+				Usage:       "MariaDB URL. (Required)",
+				Destination: &databaseURL,
+				Required:    true,
+			},
+			&cli.StringFlag{
+				Name:        "s3-secret-key",
+				Value:       "",
+				Usage:       "s3 secret key. (Required)",
+				Destination: &s3SecretKey,
+				Required:    true,
+			},
+			&cli.StringFlag{
+				Name:        "s3-access-key-id",
+				Value:       "",
+				Usage:       "s3 secret key. (Required)",
+				Destination: &s3AccessKeyID,
+				Required:    true,
+			},
+			&cli.StringFlag{
+				Name:        "s3-region",
+				Value:       "us-east-1",
+				Usage:       "s3 Region. Default 'us-east-1'",
+				Destination: &s3Region,
+				Required:    false,
+			},
+			&cli.StringFlag{
+				Name:        "s3-endpoint",
+				Value:       "s3.amazon.com",
+				Usage:       "s3 Endpoint. Default 's3.amazon.com'",
+				Destination: &s3Endpoint,
+				Required:    false,
+			},
+			&cli.BoolFlag{
+				Name:        "test-mode",
+				Value:       false,
+				Usage:       "If enabled, this script will attempt to create the sql schema. Default false",
+				Destination: &testMode,
+				Required:    false,
+			},
+		},
+		Action: func(ctx *cli.Context) error {
+			configuration := config.Values{
+				OriginBucket:      originBucket,
+				DestinationBucket: destinationBucket,
+				DatabaseURL:       databaseURL,
+				S3SecretKey:       s3SecretKey,
+				S3AccessKeyID:     s3AccessKeyID,
+				S3Region:          s3Region,
+				S3Endpoint:        s3Endpoint,
+				TestMode:          testMode,
+			}
 
-	flag.Parse()
+			if configuration.TestMode {
+				fmt.Printf("TEST MODE: Migrating database. \n")
+				db.MigrateDB(&configuration)
+			}
 
-	if *originBucket == "" || *destinationBucket == "" || *databaseURL == "" || *s3SecretKey == "" || *s3AccessKeyID == "" {
-		fmt.Printf("Missing argument \n\n Usage: \n\n go run s3-resync.go")
-		flag.PrintDefaults()
-		os.Exit(1)
+			s3.SyncObjects(&configuration)
+			return nil
+		},
 	}
 
-	configuration := config.Values{
-		OriginBucket:      *originBucket,
-		DestinationBucket: *destinationBucket,
-		DatabaseURL:       *databaseURL,
-		S3SecretKey:       *s3SecretKey,
-		S3AccessKeyID:     *s3AccessKeyID,
-		S3Region:          *s3Region,
-		S3Endpoint:        *s3Endpoint,
-		TestMode:          *testMode,
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	if configuration.TestMode {
-		db.MigrateDB(&configuration)
-	}
-
-	s3.SyncObjects(&configuration)
 }
