@@ -20,7 +20,7 @@ go run main.go \
     --test-mode=true
 ```
 
-*Note:* In case you don't have an schema in the database it can be created by using the flag `—test-mode=true`
+**Note:** In case you don't have an schema in the database it can be created by using the flag `—test-mode=true`
 
 ### It is also possible to run the whole project using docker or docker-compose
 
@@ -94,7 +94,7 @@ We will need an IAM policy providing full access to both buckets.
 
 The configuration with GCP is quite different and requires a different approach since the authentication happens using a service account, this service account is created in the GCP GUI and most of the times needs to be stored as a Json file, then in your code the gcloud SDK will require the file.
 
-The service account should have the role "Storage Object Admin" so it can have full control of objects in the bucket (but not control of the bucket itself).
+The service account should have the role **Storage Object Admin** so it can have full control of objects in the bucket (but not control of the bucket itself).
 
 ### Permissions in the database
 
